@@ -1,5 +1,4 @@
 function WorkoutCard({ id, label, onGetWorkout, runningId, backgroundImage }) {
-  const isRunning = runningId === id
   const isDisabled = runningId !== null
   const style = backgroundImage
     ? {
@@ -7,18 +6,22 @@ function WorkoutCard({ id, label, onGetWorkout, runningId, backgroundImage }) {
       }
     : {}
 
+  const handleClick = () => {
+    if (!isDisabled) onGetWorkout(id)
+  }
+
   return (
-    <article className={`workout-card ${backgroundImage ? 'workout-card--with-bg' : ''}`} style={style}>
+    <article
+      className={`workout-card ${backgroundImage ? 'workout-card--with-bg' : ''} ${isDisabled ? 'workout-card--disabled' : ''}`}
+      style={style}
+      onClick={handleClick}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(); } }}
+      role="button"
+      tabIndex={isDisabled ? -1 : 0}
+      aria-label={`Get ${label} workout`}
+    >
       {backgroundImage && <div className="workout-card-overlay" />}
       <h2>{label}</h2>
-      <button
-        type="button"
-        className="run-btn"
-        onClick={() => onGetWorkout(id)}
-        disabled={isDisabled}
-      >
-        {isRunning ? 'Running…' : 'Get workout'}
-      </button>
     </article>
   )
 }

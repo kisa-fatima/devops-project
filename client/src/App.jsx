@@ -79,6 +79,11 @@ function App() {
 
   return (
     <div className="container">
+      {runningId !== null && (
+        <div className="loader-overlay" aria-live="polite" aria-busy="true">
+          <div className="loader-spinner" />
+        </div>
+      )}
       <div className="page-heading">
         <BarbellIcon />
         <h1>Get Your Daily Workout</h1>
