@@ -23,11 +23,11 @@ app.get('/api/prompts', (req, res) => {
   }
 });
 
-app.post('/api/prompts/run', async (req, res) => {
+app.post('/api/prompts/run/:id', async (req, res) => {
   try {
-    const promptId = req.body?.promptId;
-    if (promptId == null) {
-      return res.status(400).json({ error: 'Missing promptId in request body' });
+    const promptId = req.params.id;
+    if (promptId == null || promptId === '') {
+      return res.status(400).json({ error: 'Missing prompt id in URL' });
     }
 
     const row = db.prepare('SELECT id, prompt FROM prompts WHERE id = ?').get(promptId);

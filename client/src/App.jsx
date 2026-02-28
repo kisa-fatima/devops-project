@@ -60,10 +60,8 @@ function App() {
     setRunningId(id)
     setRunResult(null)
     setRunError(null)
-    fetch(`${API_URL}/prompts/run`, {
+    fetch(`${API_URL}/prompts/run/${id}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ promptId: id }),
     })
       .then(res => res.json().then(data => {
         if (!res.ok) throw new Error(data.error || 'Request failed')
