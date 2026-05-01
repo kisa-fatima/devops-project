@@ -38,7 +38,7 @@ app.post('/api/prompts/run/:id', async (req, res) => {
     }
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash"
+      model: "gemini-1.5-flash"
     });
     const result = await model.generateContent(row.prompt);
     const response = result.response;
@@ -63,7 +63,7 @@ app.post('/api/ai/generate', async (req, res) => {
       return res.status(503).json({ error: 'Gemini API key not configured. Set GEMINI_API_KEY in .env' });
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const result = await model.generateContent(prompt.trim());
     const text = result.response.text();
 
