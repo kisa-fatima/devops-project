@@ -51,6 +51,29 @@ app.post('/api/prompts/run/:id', async (req, res) => {
   }
 });
 
+// New endpoint: accepts raw prompt text (used by Lambda for file-based processing)
+app.post('/api/ai/generate', async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt || prompt.trim() === '') {
+      return res.status(400).json({ error: 'Missing prompt in request body' });
+    }
+
+    if (!genAI) {
+      return res.status(503).json({ error: 'Gemini API key not configured. Set GEMINI_API_KEY in .env' });
+    }
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const result = await model.generateContent(prompt.trim());
+    const text = result.response.text();
+
+    res.json({ response: text });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message || 'Failed to generate AI response' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
