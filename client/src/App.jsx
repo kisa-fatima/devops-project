@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import './App.css'
 import WorkoutCard from './WorkoutCard'
 import WorkoutModal from './WorkoutModal'
@@ -55,6 +55,42 @@ function App() {
   const [runningId, setRunningId] = useState(null)
   const [runResult, setRunResult] = useState(null)
   const [runError, setRunError] = useState(null)
+  const [uploadStatus, setUploadStatus] = useState(null)
+  const [uploadMessage, setUploadMessage] = useState('')
+  const fileInputRef = useRef(null)
+
+  const handleUploadClick = () => fileInputRef.current?.click()
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    if (!file.name.endsWith('.txt')) {
+      setUploadStatus('error')
+      setUploadMessage('Only .txt files are allowed')
+      e.target.value = ''
+      return
+    }
+
+    setUploadStatus('uploading')
+    setUploadMessage('')
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const res = await fetch(`${API_URL}/upload-prompt`, { method: 'POST', body: formData })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Upload failed')
+      setUploadStatus('success')
+      setUploadMessage('Uploaded! AI is processing your prompt in the background.')
+    } catch (err) {
+      setUploadStatus('error')
+      setUploadMessage(err.message)
+    }
+
+    e.target.value = ''
+  }
 
   const handleRunPrompt = (id) => {
     setRunningId(id)
@@ -87,6 +123,30 @@ function App() {
         <h1>Get Your Daily Workout</h1>
         <BarbellIcon />
       </div>
+
+      <div className="upload-section">
+        <input
+          type="file"
+          accept=".txt"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          style={{ display: 'none' }}
+        />
+        <button
+          className="upload-btn"
+          onClick={handleUploadClick}
+          disabled={uploadStatus === 'uploading'}
+        >
+          {uploadStatus === 'uploading' ? 'Uploading…' : '↑ Upload Prompt (.txt)'}
+        </button>
+        {uploadStatus === 'success' && (
+          <span className="upload-status upload-status--success">{uploadMessage}</span>
+        )}
+        {uploadStatus === 'error' && (
+          <span className="upload-status upload-status--error">{uploadMessage}</span>
+        )}
+      </div>
+
       <div className="workout-grid-wrapper">
         <div className="workout-grid">
         {WORKOUT_CARDS.map(card => (

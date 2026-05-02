@@ -1,14 +1,20 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const multer = require('multer');
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const db = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
 const genAI = process.env.GEMINI_API_KEY
   ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
   : null;
+
+const s3 = new S3Client({ region: process.env.AWS_REGION || 'us-east-1' });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 1 * 1024 * 1024 } });
 
 app.use(cors());
 app.use(express.json());
@@ -48,6 +54,29 @@ app.post('/api/prompts/run/:id', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message || 'Failed to run prompt with Gemini' });
+  }
+});
+
+// Upload .txt file from UI → stores in S3 → triggers Lambda pipeline
+app.post('/api/upload-prompt', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    if (!req.file.originalname.endsWith('.txt')) {
+      return res.status(400).json({ error: 'Only .txt files are allowed' });
+    }
+
+    const key = `prompts/${Date.now()}-${req.file.originalname}`;
+    await s3.send(new PutObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: key,
+      Body: req.file.buffer,
+      ContentType: 'text/plain',
+    }));
+
+    res.json({ message: 'File uploaded successfully', key });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message || 'Upload failed' });
   }
 });
 
