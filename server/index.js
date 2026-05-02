@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
-const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const db = require('./db');
 
@@ -78,6 +78,30 @@ app.post('/api/upload-prompt', upload.single('file'), async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message || 'Upload failed' });
+  }
+});
+
+// List all AI response files stored in S3
+app.get('/api/results', async (req, res) => {
+  try {
+    const data = await s3.send(new ListObjectsV2Command({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Prefix: 'prompts/',
+    }));
+
+    const results = (data.Contents || [])
+      .filter(obj => obj.Key.endsWith('_response.txt'))
+      .sort((a, b) => new Date(b.LastModified) - new Date(a.LastModified))
+      .map(obj => ({
+        key: obj.Key,
+        filename: obj.Key.split('/').pop(),
+        lastModified: obj.LastModified,
+      }));
+
+    res.json(results);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
   }
 });
 

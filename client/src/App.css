@@ -121,6 +121,83 @@ h1 {
   text-align: center;
 }
 
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+
+.tab-btn {
+  padding: 0.5rem 1.75rem;
+  background: transparent;
+  color: rgba(255,255,255,0.55);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover { color: #fff; border-color: rgba(61,138,255,0.5); }
+
+.tab-btn--active {
+  color: #fff;
+  border-color: rgba(61,138,255,0.8);
+  box-shadow: 0 0 8px rgba(61,138,255,0.4);
+}
+
+/* Results tab */
+.results-tab { width: 100%; }
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  color: rgba(255,255,255,0.6);
+  font-size: 0.9rem;
+}
+
+.refresh-btn {
+  background: transparent;
+  color: rgba(255,255,255,0.7);
+  border: 1px solid rgba(61,138,255,0.4);
+  border-radius: 6px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.refresh-btn:hover:not(:disabled) { color: #fff; border-color: rgba(61,138,255,0.8); }
+.refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.results-empty { color: rgba(255,255,255,0.4); text-align: center; margin-top: 3rem; }
+
+.results-list { display: flex; flex-direction: column; gap: 0.6rem; }
+
+.result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1.1rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+}
+
+.result-item:hover {
+  border-color: rgba(61,138,255,0.5);
+  box-shadow: 0 0 8px rgba(61,138,255,0.2);
+}
+
+.result-filename { color: #fff; font-size: 0.9rem; word-break: break-all; }
+.result-date { color: rgba(255,255,255,0.4); font-size: 0.8rem; white-space: nowrap; margin-left: 1rem; }
+
 /* Upload prompt section */
 .upload-section {
   display: flex;

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import './App.css'
 import WorkoutCard from './WorkoutCard'
 import WorkoutModal from './WorkoutModal'
@@ -52,13 +52,47 @@ function BarbellIcon() {
 }
 
 function App() {
+  const [activeTab, setActiveTab] = useState('workouts')
   const [runningId, setRunningId] = useState(null)
   const [runResult, setRunResult] = useState(null)
   const [runError, setRunError] = useState(null)
   const [uploadStatus, setUploadStatus] = useState(null)
   const [uploadMessage, setUploadMessage] = useState('')
   const [lambdaResult, setLambdaResult] = useState(null)
+  const [resultsList, setResultsList] = useState([])
+  const [resultsLoading, setResultsLoading] = useState(false)
+  const [selectedResult, setSelectedResult] = useState(null)
+  const [selectedResultContent, setSelectedResultContent] = useState('')
   const fileInputRef = useRef(null)
+
+  const fetchResultsList = useCallback(async () => {
+    setResultsLoading(true)
+    try {
+      const res = await fetch(`${API_URL}/results`)
+      const data = await res.json()
+      setResultsList(Array.isArray(data) ? data : [])
+    } catch {
+      setResultsList([])
+    } finally {
+      setResultsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === 'results') fetchResultsList()
+  }, [activeTab, fetchResultsList])
+
+  const handleViewResult = async (key) => {
+    setSelectedResult(key)
+    setSelectedResultContent('')
+    try {
+      const res = await fetch(`${API_URL}/result?key=${encodeURIComponent(key)}`)
+      const data = await res.json()
+      setSelectedResultContent(data.result || 'No content found.')
+    } catch {
+      setSelectedResultContent('Failed to load result.')
+    }
+  }
 
   const handleUploadClick = () => fileInputRef.current?.click()
 
@@ -159,6 +193,11 @@ function App() {
         <BarbellIcon />
       </div>
 
+      <div className="tabs">
+        <button className={`tab-btn${activeTab === 'workouts' ? ' tab-btn--active' : ''}`} onClick={() => setActiveTab('workouts')}>Workouts</button>
+        <button className={`tab-btn${activeTab === 'results' ? ' tab-btn--active' : ''}`} onClick={() => setActiveTab('results')}>Results</button>
+      </div>
+
       <div className="upload-section">
         <input
           type="file"
@@ -182,20 +221,54 @@ function App() {
         )}
       </div>
 
-      <div className="workout-grid-wrapper">
-        <div className="workout-grid">
-        {WORKOUT_CARDS.map(card => (
-          <WorkoutCard
-            key={card.id}
-            id={card.id}
-            label={card.label}
-            onGetWorkout={handleRunPrompt}
-            runningId={runningId}
-            backgroundImage={card.image}
-          />
-        ))}
+      {activeTab === 'workouts' && (
+        <div className="workout-grid-wrapper">
+          <div className="workout-grid">
+            {WORKOUT_CARDS.map(card => (
+              <WorkoutCard
+                key={card.id}
+                id={card.id}
+                label={card.label}
+                onGetWorkout={handleRunPrompt}
+                runningId={runningId}
+                backgroundImage={card.image}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {activeTab === 'results' && (
+        <div className="results-tab">
+          <div className="results-header">
+            <span>{resultsList.length} result{resultsList.length !== 1 ? 's' : ''} stored in S3</span>
+            <button className="refresh-btn" onClick={fetchResultsList} disabled={resultsLoading}>
+              {resultsLoading ? 'Loading…' : '↻ Refresh'}
+            </button>
+          </div>
+          {resultsLoading && <p className="results-empty">Loading…</p>}
+          {!resultsLoading && resultsList.length === 0 && (
+            <p className="results-empty">No results yet. Upload a prompt to get started.</p>
+          )}
+          <div className="results-list">
+            {resultsList.map(item => (
+              <button key={item.key} className="result-item" onClick={() => handleViewResult(item.key)}>
+                <span className="result-filename">{item.filename}</span>
+                <span className="result-date">{new Date(item.lastModified).toLocaleString()}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {selectedResult && (
+        <WorkoutModal title={selectedResult.split('/').pop()} onClose={() => { setSelectedResult(null); setSelectedResultContent('') }}>
+          {selectedResultContent
+            ? <div className="response-content" dangerouslySetInnerHTML={{ __html: formatResponseText(selectedResultContent) }} />
+            : <p className="modal-message">Loading…</p>
+          }
+        </WorkoutModal>
+      )}
 
       {lambdaResult && (
         <WorkoutModal title="AI Response (from S3)" onClose={() => setLambdaResult(null)}>
