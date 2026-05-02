@@ -57,9 +57,38 @@ function App() {
   const [runError, setRunError] = useState(null)
   const [uploadStatus, setUploadStatus] = useState(null)
   const [uploadMessage, setUploadMessage] = useState('')
+  const [lambdaResult, setLambdaResult] = useState(null)
   const fileInputRef = useRef(null)
 
   const handleUploadClick = () => fileInputRef.current?.click()
+
+  const pollForResult = (outputKey) => {
+    const maxAttempts = 20  // 20 × 3s = 60s timeout
+    let attempts = 0
+    const interval = setInterval(async () => {
+      attempts++
+      try {
+        const res = await fetch(`${API_URL}/result?key=${encodeURIComponent(outputKey)}`)
+        if (res.ok) {
+          const data = await res.json()
+          clearInterval(interval)
+          setUploadStatus(null)
+          setUploadMessage('')
+          setLambdaResult(data.result)
+        } else if (attempts >= maxAttempts) {
+          clearInterval(interval)
+          setUploadStatus('error')
+          setUploadMessage('Timed out waiting for AI response. Check S3 outputs manually.')
+        }
+      } catch {
+        if (attempts >= maxAttempts) {
+          clearInterval(interval)
+          setUploadStatus('error')
+          setUploadMessage('Failed to retrieve AI response.')
+        }
+      }
+    }, 3000)
+  }
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0]
@@ -83,8 +112,13 @@ function App() {
       let data
       try { data = await res.json() } catch { throw new Error(`Server error (${res.status}) — check backend logs`) }
       if (!res.ok) throw new Error(data.error || 'Upload failed')
+
       setUploadStatus('success')
-      setUploadMessage('Uploaded! AI is processing your prompt in the background.')
+      setUploadMessage('Uploaded! Waiting for AI response…')
+
+      // Derive the output key Lambda will write to
+      const outputKey = data.key.replace('.txt', '_response.txt')
+      pollForResult(outputKey)
     } catch (err) {
       setUploadStatus('error')
       setUploadMessage(err.message)
@@ -162,6 +196,15 @@ function App() {
         ))}
         </div>
       </div>
+
+      {lambdaResult && (
+        <WorkoutModal title="AI Response (from S3)" onClose={() => setLambdaResult(null)}>
+          <div
+            className="response-content"
+            dangerouslySetInnerHTML={{ __html: formatResponseText(lambdaResult) }}
+          />
+        </WorkoutModal>
+      )}
 
       {runError && (
         <WorkoutModal title="Error" onClose={() => setRunError(null)}>

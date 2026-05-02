@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
-const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const db = require('./db');
 
@@ -78,6 +78,25 @@ app.post('/api/upload-prompt', upload.single('file'), async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message || 'Upload failed' });
+  }
+});
+
+// Poll for Lambda result: returns content of response file from S3, 404 if not ready yet
+app.get('/api/result', async (req, res) => {
+  try {
+    const { key } = req.query;
+    if (!key) return res.status(400).json({ error: 'Missing key' });
+
+    const data = await s3.send(new GetObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: key,
+    }));
+
+    const text = await data.Body.transformToString();
+    res.json({ result: text });
+  } catch (err) {
+    if (err.name === 'NoSuchKey') return res.status(404).json({ error: 'Not ready yet' });
+    res.status(500).json({ error: err.message });
   }
 });
 
