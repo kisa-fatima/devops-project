@@ -86,11 +86,11 @@ app.get('/api/results', async (req, res) => {
   try {
     const data = await s3.send(new ListObjectsV2Command({
       Bucket: process.env.S3_BUCKET_NAME,
-      Prefix: 'prompts/',
+      Prefix: 'results/',
     }));
 
     const results = (data.Contents || [])
-      .filter(obj => obj.Key.endsWith('_response.txt'))
+      .filter(obj => obj.Key.endsWith('.txt'))
       .sort((a, b) => new Date(b.LastModified) - new Date(a.LastModified))
       .map(obj => ({
         key: obj.Key,
