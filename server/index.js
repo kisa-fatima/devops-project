@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
+const path = require('path');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const db = require('./db');
@@ -101,6 +102,13 @@ app.post('/api/ai/generate', async (req, res) => {
     console.error(err);
     res.status(500).json({ error: err.message || 'Failed to generate AI response' });
   }
+});
+
+// Serve built React frontend
+const distPath = path.join(__dirname, '../client/dist');
+app.use(express.static(distPath));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 app.listen(PORT, () => {

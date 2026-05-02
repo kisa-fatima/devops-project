@@ -80,7 +80,8 @@ function App() {
 
     try {
       const res = await fetch(`${API_URL}/upload-prompt`, { method: 'POST', body: formData })
-      const data = await res.json()
+      let data
+      try { data = await res.json() } catch { throw new Error(`Server error (${res.status}) — check backend logs`) }
       if (!res.ok) throw new Error(data.error || 'Upload failed')
       setUploadStatus('success')
       setUploadMessage('Uploaded! AI is processing your prompt in the background.')
